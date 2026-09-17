@@ -48,7 +48,10 @@ private enum class PomodoroTab {
 }
 
 @Composable
-fun PomodoroScreen(onNavigateHome: () -> Unit) {
+fun PomodoroScreen(
+    modifier: Modifier = Modifier,
+    onNavigateHome: () -> Unit,
+) {
     val context = LocalContext.current
     val state by PomodoroSession.state
     val statistics by PomodoroSession.statistics
@@ -120,6 +123,7 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
 
     if (showSettings) {
         PomodoroSettingsScreen(
+            modifier = modifier,
             initialDurations = PomodoroSession.currentDurations,
             onSave = { durations ->
                 PomodoroSession.updateDurations(durations)
@@ -130,7 +134,7 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
         return
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize()) {
         Text(
             text = "Pomodoro",
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),

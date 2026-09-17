@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import io.github.mockuptools.tinyworks.core.TinyworksTheme
+import io.github.mockuptools.tinyworks.core.ui.TinyworksAppShell
+import io.github.mockuptools.tinyworks.core.ui.TinyworksMenuItem
 import io.github.mockuptools.tinyworks.feature.home.HomeScreen
 import io.github.mockuptools.tinyworks.feature.pomodoro.PomodoroScreen
 import io.github.mockuptools.tinyworks.feature.pomodoro.PomodoroSession
@@ -62,13 +64,30 @@ private fun TinyworksApp(openPomodoroRequestId: Int) {
         }
     }
 
-    when (destination) {
-        Destination.HOME -> HomeScreen(
-            onOpenPomodoro = { destination = Destination.POMODORO },
-        )
+    TinyworksAppShell(
+        menuItems = listOf(
+            TinyworksMenuItem(
+                label = "ホーム",
+                selected = destination == Destination.HOME,
+                onClick = { destination = Destination.HOME },
+            ),
+            TinyworksMenuItem(
+                label = "Pomodoro",
+                selected = destination == Destination.POMODORO,
+                onClick = { destination = Destination.POMODORO },
+            ),
+        ),
+    ) { contentModifier ->
+        when (destination) {
+            Destination.HOME -> HomeScreen(
+                modifier = contentModifier,
+                onOpenPomodoro = { destination = Destination.POMODORO },
+            )
 
-        Destination.POMODORO -> PomodoroScreen(
-            onNavigateHome = { destination = Destination.HOME },
-        )
+            Destination.POMODORO -> PomodoroScreen(
+                modifier = contentModifier,
+                onNavigateHome = { destination = Destination.HOME },
+            )
+        }
     }
 }

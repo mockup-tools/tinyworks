@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun PomodoroSettingsScreen(
+    modifier: Modifier = Modifier,
     initialDurations: PomodoroDurations,
     onSave: (PomodoroDurations) -> Unit,
     onCancel: () -> Unit,
@@ -56,7 +57,9 @@ fun PomodoroSettingsScreen(
     }
 
     Column(
-        modifier = Modifier.padding(24.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("タイマー設定", style = MaterialTheme.typography.headlineMedium)
