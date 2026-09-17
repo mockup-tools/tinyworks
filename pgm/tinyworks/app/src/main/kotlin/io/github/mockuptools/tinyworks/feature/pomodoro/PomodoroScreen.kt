@@ -4,17 +4,17 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -26,9 +26,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 private enum class PendingTimerAction {
@@ -52,6 +56,18 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
     var selectedTab by rememberSaveable { mutableStateOf(PomodoroTab.TIMER) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingTimerAction?>(null) }
+    var currentTimeMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    BackHandler {
+        onNavigateHome()
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTimeMillis = System.currentTimeMillis()
+            delay(1_000L)
+        }
+    }
 
     fun returnHomeForMissingNotificationPermission() {
         PomodoroSession.reset()
@@ -115,20 +131,11 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 12.dp, top = 24.dp),
-        ) {
-            Text("Pomodoro", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.weight(1f))
-            IconButton(
-                onClick = { showSettings = true },
-                enabled = state.status == PomodoroStatus.READY && selectedTab == PomodoroTab.TIMER,
-            ) {
-                Text("⚙", style = MaterialTheme.typography.titleLarge)
-            }
-        }
+        Text(
+            text = "Pomodoro",
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
+            style = MaterialTheme.typography.headlineMedium,
+        )
 
         TabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(
@@ -146,6 +153,8 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
         when (selectedTab) {
             PomodoroTab.TIMER -> TimerTab(
                 state = state,
+                currentTimeMillis = currentTimeMillis,
+                schedule = PomodoroSession.displaySchedule(),
                 onStart = { requestOrExecute(PendingTimerAction.START) },
                 onPause = {
                     PomodoroSession.pause()
@@ -158,6 +167,7 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
                     PomodoroSession.reset()
                     PomodoroTimerServiceController.stop(context)
                 },
+                onOpenSettings = { showSettings = true },
                 onNavigateHome = onNavigateHome,
             )
 
@@ -174,12 +184,15 @@ fun PomodoroScreen(onNavigateHome: () -> Unit) {
 @Composable
 private fun TimerTab(
     state: PomodoroTimerState,
+    currentTimeMillis: Long,
+    schedule: PomodoroSession.DisplaySchedule,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onStartBreak: () -> Unit,
     onStartNextWork: () -> Unit,
     onReset: () -> Unit,
+    onOpenSettings: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     Column(
@@ -197,6 +210,11 @@ private fun TimerTab(
             },
             style = MaterialTheme.typography.displayMedium,
         )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("現在時刻: ${formatClock(currentTimeMillis)}")
+            Text("終了予定: ${formatClock(schedule.workEndAtEpochMillis)}")
+            Text("休憩終了: ${formatClock(schedule.breakEndAtEpochMillis)}")
+        }
         Text(statusText(state))
 
         when (state.status) {
@@ -258,11 +276,20 @@ private fun TimerTab(
             }
         }
 
-        Button(
-            onClick = onNavigateHome,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        Spacer(Modifier.weight(1f))
+
+        Button(onClick = onNavigateHome, modifier = Modifier.fillMaxWidth()) {
             Text("ホームへ戻る")
+        }
+
+        Button(
+            onClick = onOpenSettings,
+            enabled = state.status == PomodoroStatus.READY,
+            modifier = Modifier
+                .align(Alignment.Start)
+                .height(56.dp),
+        ) {
+            Text("⚙ 設定")
         }
     }
 }
@@ -286,3 +313,9 @@ private fun formatDuration(millis: Long): String {
     val seconds = totalSeconds % 60L
     return String.format(Locale.US, "%02d:%02d", minutes, seconds)
 }
+
+private fun formatClock(epochMillis: Long): String =
+    SimpleDateFormat("HH:mm", Locale.JAPAN).format(Date(epochMillis))
+
+private fun formatClock(epochMillis: Long?): String =
+    epochMillis?.let(::formatClock) ?: "--:--"

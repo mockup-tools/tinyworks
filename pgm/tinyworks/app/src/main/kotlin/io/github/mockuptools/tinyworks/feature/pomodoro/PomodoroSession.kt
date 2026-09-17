@@ -14,7 +14,10 @@ object PomodoroSession {
     private var repository: PomodoroRepository? = null
     private var durations = PomodoroDurations()
     private var workStartedAtEpochMillis: Long? = null
+    private var workEndAtEpochMillis: Long? = null
+    private var breakEndAtEpochMillis: Long? = null
     private var activeHistoryId: Long? = null
+    private var pausedAtEpochMillis: Long? = null
 
     private val mutableState = mutableStateOf(timer.snapshot())
     private val mutableStatistics = mutableStateOf(PomodoroStatistics(0L, 0L, 0L, 0L))
@@ -32,6 +35,11 @@ object PomodoroSession {
     val recentSessions: State<List<PomodoroSessionRecord>>
         get() = mutableRecentSessions
 
+    data class DisplaySchedule(
+        val workEndAtEpochMillis: Long?,
+        val breakEndAtEpochMillis: Long?,
+    )
+
     fun initialize(context: Context) {
         if (repository != null) return
 
@@ -42,8 +50,29 @@ object PomodoroSession {
             workDurationMillis = durations.workMillis,
             breakDurationMillis = durations.breakMillis,
         )
+        workStartedAtEpochMillis = null
+        workEndAtEpochMillis = null
+        breakEndAtEpochMillis = null
+        activeHistoryId = null
+        pausedAtEpochMillis = null
         mutableState.value = timer.snapshot()
         refreshStatistics()
+    }
+
+    fun displaySchedule(): DisplaySchedule {
+        val currentState = timer.snapshot()
+        val breakEnd = if (
+            currentState.phase == PomodoroPhase.WORK &&
+            workEndAtEpochMillis != null
+        ) {
+            workEndAtEpochMillis!! + durations.breakMillis + currentState.overtimeMillis
+        } else {
+            breakEndAtEpochMillis
+        }
+        return DisplaySchedule(
+            workEndAtEpochMillis = workEndAtEpochMillis,
+            breakEndAtEpochMillis = breakEnd,
+        )
     }
 
     fun advance(nowMillis: Long = SystemClock.elapsedRealtime()): PomodoroTimerState {
@@ -76,15 +105,40 @@ object PomodoroSession {
             next.status == PomodoroStatus.RUNNING
         ) {
             workStartedAtEpochMillis = System.currentTimeMillis()
+            workEndAtEpochMillis = workStartedAtEpochMillis!! + durations.workMillis
+            breakEndAtEpochMillis = null
+            pausedAtEpochMillis = null
         }
         return publish(next)
     }
 
-    fun pause(nowMillis: Long = SystemClock.elapsedRealtime()): PomodoroTimerState =
-        publish(timer.pause(nowMillis))
+    fun pause(nowMillis: Long = SystemClock.elapsedRealtime()): PomodoroTimerState {
+        val before = timer.snapshot()
+        val next = timer.pause(nowMillis)
+        if (before.status == PomodoroStatus.RUNNING && next.status == PomodoroStatus.PAUSED) {
+            pausedAtEpochMillis = System.currentTimeMillis()
+        }
+        return publish(next)
+    }
 
-    fun resume(nowMillis: Long = SystemClock.elapsedRealtime()): PomodoroTimerState =
-        publish(timer.resume(nowMillis))
+    fun resume(nowMillis: Long = SystemClock.elapsedRealtime()): PomodoroTimerState {
+        val before = timer.snapshot()
+        val next = timer.resume(nowMillis)
+        if (before.status == PomodoroStatus.PAUSED && next.status == PomodoroStatus.RUNNING) {
+            val pauseDurationMillis = pausedAtEpochMillis?.let {
+                (System.currentTimeMillis() - it).coerceAtLeast(0L)
+            } ?: 0L
+            if (pauseDurationMillis > 0L) {
+                if (before.phase == PomodoroPhase.WORK && before.overtimeMillis == 0L) {
+                    workEndAtEpochMillis = workEndAtEpochMillis?.plus(pauseDurationMillis)
+                } else if (before.phase == PomodoroPhase.BREAK) {
+                    breakEndAtEpochMillis = breakEndAtEpochMillis?.plus(pauseDurationMillis)
+                }
+            }
+            pausedAtEpochMillis = null
+        }
+        return publish(next)
+    }
 
     fun startBreak(nowMillis: Long = SystemClock.elapsedRealtime()): PomodoroTimerState {
         val workState = timer.advance(nowMillis)
@@ -95,13 +149,16 @@ object PomodoroSession {
             (workState.status == PomodoroStatus.RUNNING ||
                 workState.status == PomodoroStatus.PAUSED)
         ) {
+            val nowEpochMillis = System.currentTimeMillis()
             activeHistoryId = repository?.recordWorkSession(
-                workStartedAtEpochMillis = workStartedAtEpochMillis ?: System.currentTimeMillis(),
-                workEndedAtEpochMillis = System.currentTimeMillis(),
+                workStartedAtEpochMillis = workStartedAtEpochMillis ?: nowEpochMillis,
+                workEndedAtEpochMillis = nowEpochMillis,
                 workElapsedMillis = workState.elapsedMillis,
                 overtimeMillis = workState.overtimeMillis,
-                breakStartedAtEpochMillis = System.currentTimeMillis(),
+                breakStartedAtEpochMillis = nowEpochMillis,
             )
+            breakEndAtEpochMillis = nowEpochMillis + durations.breakMillis
+            pausedAtEpochMillis = null
             refreshStatistics()
         }
         return publish(next)
@@ -111,7 +168,10 @@ object PomodoroSession {
         val next = timer.startNextWork(nowMillis)
         if (next.phase == PomodoroPhase.WORK && next.status == PomodoroStatus.RUNNING) {
             workStartedAtEpochMillis = System.currentTimeMillis()
+            workEndAtEpochMillis = workStartedAtEpochMillis!! + durations.workMillis
+            breakEndAtEpochMillis = null
             activeHistoryId = null
+            pausedAtEpochMillis = null
         }
         return publish(next)
     }
@@ -130,7 +190,10 @@ object PomodoroSession {
 
     fun reset(): PomodoroTimerState {
         workStartedAtEpochMillis = null
+        workEndAtEpochMillis = null
+        breakEndAtEpochMillis = null
         activeHistoryId = null
+        pausedAtEpochMillis = null
         return publish(timer.reset())
     }
 
