@@ -319,7 +319,7 @@ private fun formatDuration(millis: Long): String {
 }
 
 private fun formatClock(epochMillis: Long): String =
-    SimpleDateFormat("HH:mm", Locale.JAPAN).format(Date(epochMillis))
+    SimpleDateFormat("HH:mm:ss", Locale.JAPAN).format(Date(epochMillis))
 
 private fun formatClock(epochMillis: Long?): String =
     epochMillis?.let(::formatClock) ?: "--:--"
