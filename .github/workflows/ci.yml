@@ -72,4 +72,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v4.4.3
 
       - name: Run unit tests, lint, and debug build
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+        run: bash ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
