@@ -11,25 +11,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.DrawerValue
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.zIndex
 
 data class TinyworksMenuItem(
     val label: String,
@@ -42,45 +46,16 @@ fun TinyworksAppShell(
     menuItems: List<TinyworksMenuItem>,
     content: @Composable (Modifier) -> Unit,
 ) {
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    var isMenuOpen by rememberSaveable { mutableStateOf(false) }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Tinyworks",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                    menuItems.forEach { item ->
-                        NavigationDrawerItem(
-                            label = { Text(item.label) },
-                            selected = item.selected,
-                            onClick = {
-                                scope.launch {
-                                    drawerState.close()
-                                    item.onClick()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-        },
-    ) {
+    BackHandler(enabled = isMenuOpen) {
+        isMenuOpen = false
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TinyworksHeader(
-                onOpenMenu = { scope.launch { drawerState.open() } },
+                onOpenMenu = { isMenuOpen = true },
             )
             Box(
                 modifier = Modifier
@@ -88,6 +63,57 @@ fun TinyworksAppShell(
                     .navigationBarsPadding(),
             ) {
                 content(Modifier.fillMaxSize())
+            }
+        }
+
+        if (isMenuOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(1f),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .clickable { isMenuOpen = false },
+                )
+                Surface(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(0.82f)
+                        .align(Alignment.CenterEnd)
+                        .shadow(12.dp, RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp))
+                        .clip(RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = "Tinyworks",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                        menuItems.forEach { item ->
+                            NavigationDrawerItem(
+                                label = { Text(item.label) },
+                                selected = item.selected,
+                                onClick = {
+                                    isMenuOpen = false
+                                    item.onClick()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -107,6 +133,12 @@ private fun TinyworksHeader(onOpenMenu: () -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Text(
+                text = "Tinyworks",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.weight(1f))
             IconButton(onClick = onOpenMenu) {
                 Text(
                     text = "☰",
@@ -115,12 +147,6 @@ private fun TinyworksHeader(onOpenMenu: () -> Unit) {
                     lineHeight = 28.sp,
                 )
             }
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = "Tinyworks",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
         }
     }
 }
