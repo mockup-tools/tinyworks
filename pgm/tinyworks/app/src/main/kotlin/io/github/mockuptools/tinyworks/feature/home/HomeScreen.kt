@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenPomodoro: () -> Unit,
+    onOpenPoyDay: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -28,6 +29,12 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Pomodoro")
+        }
+        Button(
+            onClick = onOpenPoyDay,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("ポイの日")
         }
     }
 }

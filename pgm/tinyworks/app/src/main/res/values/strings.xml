@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Tinyworks</string>
+    <string name="poyday_widget_description">ポイの日の今週・翌週ウィジェット</string>
 </resources>
