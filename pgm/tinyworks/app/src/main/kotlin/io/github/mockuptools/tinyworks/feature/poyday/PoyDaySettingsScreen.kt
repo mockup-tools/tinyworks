@@ -36,7 +36,13 @@ fun PoyDaySettingsScreen(
     onSave: (List<PoyDayRule>) -> Unit,
 ) {
     var drafts by remember(rules) {
-        mutableStateOf(rules.associateBy(PoyDayRule::category))
+        mutableStateOf(
+            PoyDayCategory.entries.associateWith { category ->
+                rules.filter { it.category == category }.ifEmpty {
+                    listOf(PoyDayRule(category))
+                }
+            },
+        )
     }
 
     Column(
@@ -52,18 +58,18 @@ fun PoyDaySettingsScreen(
         )
 
         PoyDayCategory.entries.forEach { category ->
-            val rule = drafts[category] ?: PoyDayRule(category)
-            PoyDayRuleCard(
-                rule = rule,
-                onChange = { updated ->
-                    drafts = drafts + (category to updated)
+            PoyDayRuleGroup(
+                category = category,
+                rules = drafts[category].orEmpty(),
+                onRulesChange = { updatedRules ->
+                    drafts = drafts + (category to updatedRules)
                 },
             )
         }
 
         Button(
             onClick = {
-                onSave(PoyDayCategory.entries.map { drafts[it] ?: PoyDayRule(it) })
+                onSave(PoyDayCategory.entries.flatMap { drafts[it].orEmpty() })
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -73,9 +79,10 @@ fun PoyDaySettingsScreen(
 }
 
 @Composable
-private fun PoyDayRuleCard(
-    rule: PoyDayRule,
-    onChange: (PoyDayRule) -> Unit,
+private fun PoyDayRuleGroup(
+    category: PoyDayCategory,
+    rules: List<PoyDayRule>,
+    onRulesChange: (List<PoyDayRule>) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -86,67 +93,119 @@ private fun PoyDayRuleCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = rule.category.icon, fontSize = 22.sp)
+                Text(text = category.icon, fontSize = 22.sp)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = rule.category.displayName,
+                    text = category.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.weight(1f))
-                Switch(
-                    checked = rule.enabled,
-                    onCheckedChange = { onChange(rule.copy(enabled = it)) },
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PoyDayMode.entries.forEach { mode ->
-                    if (rule.mode == mode) {
-                        Button(
-                            onClick = { onChange(rule.copy(mode = mode)) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(mode.displayName)
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = { onChange(rule.copy(mode = mode)) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(mode.displayName)
-                        }
-                    }
+                OutlinedButton(
+                    onClick = {
+                        onRulesChange(rules + PoyDayRule(category = category, enabled = true))
+                    },
+                ) {
+                    Text("＋ 追加")
                 }
             }
 
-            if (rule.mode == PoyDayMode.WEEK) {
-                PoyDaySelector(
-                    label = "週",
-                    value = rule.weekPattern.displayName,
-                    options = PoyDayWeekPattern.entries.toList(),
-                    optionLabel = PoyDayWeekPattern::displayName,
-                    onSelected = { onChange(rule.copy(weekPattern = it)) },
-                )
-                PoyDaySelector(
-                    label = "曜日",
-                    value = "${rule.weekday.displayName}曜日",
-                    options = PoyDayWeekday.entries.toList(),
-                    optionLabel = { "${it.displayName}曜日" },
-                    onSelected = { onChange(rule.copy(weekday = it)) },
-                )
-            } else {
-                PoyDaySelector(
-                    label = "毎月の日",
-                    value = "${rule.dayOfMonth}日",
-                    options = (1..31).toList(),
-                    optionLabel = { "${it}日" },
-                    onSelected = { onChange(rule.copy(dayOfMonth = it)) },
+            rules.forEachIndexed { index, rule ->
+                PoyDayRuleEditor(
+                    rule = rule,
+                    index = index,
+                    canRemove = rules.size > 1,
+                    onChange = { updated ->
+                        onRulesChange(rules.mapIndexed { ruleIndex, current ->
+                            if (ruleIndex == index) updated else current
+                        })
+                    },
+                    onRemove = {
+                        onRulesChange(rules.filterIndexed { ruleIndex, _ -> ruleIndex != index })
+                    },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PoyDayRuleEditor(
+    rule: PoyDayRule,
+    index: Int,
+    canRemove: Boolean,
+    onChange: (PoyDayRule) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "設定 ${index + 1}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.weight(1f))
+            Switch(
+                checked = rule.enabled,
+                onCheckedChange = { onChange(rule.copy(enabled = it)) },
+            )
+            if (canRemove) {
+                Spacer(Modifier.width(4.dp))
+                OutlinedButton(onClick = onRemove) {
+                    Text("削除")
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PoyDayMode.entries.forEach { mode ->
+                if (rule.mode == mode) {
+                    Button(
+                        onClick = { onChange(rule.copy(mode = mode)) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(mode.displayName)
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onChange(rule.copy(mode = mode)) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(mode.displayName)
+                    }
+                }
+            }
+        }
+
+        if (rule.mode == PoyDayMode.WEEK) {
+            PoyDaySelector(
+                label = "週",
+                value = rule.weekPattern.displayName,
+                options = PoyDayWeekPattern.entries.toList(),
+                optionLabel = PoyDayWeekPattern::displayName,
+                onSelected = { onChange(rule.copy(weekPattern = it)) },
+            )
+            PoyDaySelector(
+                label = "曜日",
+                value = "${rule.weekday.displayName}曜日",
+                options = PoyDayWeekday.entries.toList(),
+                optionLabel = { "${it.displayName}曜日" },
+                onSelected = { onChange(rule.copy(weekday = it)) },
+            )
+            } else {
+            PoyDaySelector(
+                label = "毎月の日",
+                value = "${rule.dayOfMonth}日",
+                options = (1..31).toList(),
+                optionLabel = { "${it}日" },
+                onSelected = { onChange(rule.copy(dayOfMonth = it)) },
+            )
         }
     }
 }

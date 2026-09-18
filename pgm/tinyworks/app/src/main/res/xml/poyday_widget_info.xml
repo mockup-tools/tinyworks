@@ -3,7 +3,7 @@
     android:description="@string/poyday_widget_description"
     android:initialLayout="@layout/poyday_widget"
     android:minHeight="110dp"
-    android:minWidth="250dp"
+    android:minWidth="360dp"
     android:resizeMode="none"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen" />

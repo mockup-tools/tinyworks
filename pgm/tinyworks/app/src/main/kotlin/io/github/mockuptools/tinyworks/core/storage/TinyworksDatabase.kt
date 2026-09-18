@@ -50,7 +50,7 @@ class TinyworksDatabase private constructor(context: Context) : SQLiteOpenHelper
 
     companion object Provider {
         private const val DATABASE_NAME = "tinyworks.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         private var instance: TinyworksDatabase? = null
 
