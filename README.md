@@ -1,57 +1,66 @@
 # tinyworks
 
-個人用の小さな機能を一つのAndroidアプリにまとめ、必要に応じて機能を追加していくためのリポジトリです。
+個人用の小さな機能を一つにまとめたAndroidアプリです。機能ごとにコードと設計書を分け、一つのAPKとして提供します。
 
-アプリは一つのAPKとして提供します。ホーム機能と各機能をコード・設計書の単位で分離し、初期段階ではシンプルな構成を維持します。
+## 機能
 
-## 現在の構成
+| 機能 | 内容 | 設計資料 |
+| --- | --- | --- |
+| ホーム | 機能一覧と各機能への入口 | [ホーム](docs/apps/home/00_企画書.md) |
+| Pomodoro | 作業・休憩タイマー、設定、統計・履歴 | [Pomodoro](docs/apps/pomodoro/00_企画書.md) |
+| ポイの日（PoyDay） | ゴミ出しルールの設定、カレンダー、ホーム画面ウィジェット | [ポイの日](docs/apps/poyday/00_企画書.md) |
 
-- 共通基盤（`core`）
-- ホーム機能（`home`）
-- 最初の機能（`pomodoro`）
+## リポジトリ構成
 
-今後追加する機能の名前や内容は、決定するまで定義しません。
+```text
+tinyworks/
+├─ android/                 # AndroidプロジェクトとGradle Wrapper
+│  └─ app/src/
+│     ├─ main/
+│     │  ├─ kotlin/io/github/mockuptools/tinyworks/
+│     │  │  ├─ MainActivity.kt
+│     │  │  ├─ core/         # 共通UI・保存基盤
+│     │  │  └─ feature/      # home・pomodoro・poyday
+│     │  └─ res/
+│     └─ test/               # 単体テスト
+├─ docs/                    # 全体・共通設計と機能別設計
+├─ .devcontainer/           # Codespacesの開発環境
+└─ .github/workflows/       # 検証とFirebase配布
+```
+
+Gradleモジュールは`app`一つです。機能間の共有処理は`core`、各機能の画面・状態・保存処理は`feature/<機能名>`で管理します。
+
+## 開発を始める
+
+GitHub Codespacesで開くと、`.devcontainer`で定義したJDK 17とAndroid SDKを利用できます。ローカルの場合もJDK 17、Android SDK API 37、Build Tools 37.0.0を用意し、SDKの場所を`ANDROID_HOME`または`android/local.properties`の`sdk.dir`に設定してください。
+
+リポジトリ直下から実行します。
+
+```sh
+cd android
+./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+```
+
+Windows（PowerShell）の場合:
+
+```powershell
+cd android
+.\gradlew.bat --no-daemon testDebugUnitTest lintDebug assembleDebug
+```
+
+Debug APKの出力先は`android/app/build/outputs/apk/debug/app-debug.apk`です。Gradleは同梱のWrapperを使います。対応端末はAndroid API 37以上です。
+
+詳しい手順は[開発環境構築手順](docs/30_開発環境構築手順.md)、変更時の確認事項は[開発ガイド](CONTRIBUTING.md)を参照してください。
+
+## 検証と配布
+
+- CIは単体テスト、Android Lint、Debug APKビルドを実行します。
+- `main`へのpushでCIが成功すると、固定署名鍵で署名したAPKをFirebase App Distributionへ配布します。
+- 配布用の認証情報はGitHub Actions Secretsで管理します。設定は[共通CI/CD設計書](docs/35_共通CI-CD設計書.md)に記載しています。
 
 ## ドキュメント
 
-### 全体・共通
-
-- [シリーズ企画書](Doc/00_企画書.md)
-- [全体基本設計書](Doc/10_基本設計書.md)
-- [共通基盤設計書](Doc/20_共通基盤設計書.md)
-- [開発環境構築手順](Doc/30_開発環境構築手順.md)
-- [共通CI/CD設計書](Doc/35_共通CI-CD設計書.md)
-- [公開・運用方針](Doc/40_公開・運用方針.md)
-- [共通プライバシー方針](Doc/50_共通プライバシー方針.md)
-
-### 機能別
-
-- [ホーム機能](Doc/apps/home/00_企画書.md)
-- [ホーム機能 基本設計書](Doc/apps/home/10_基本設計書.md)
-- [Pomodoro](Doc/apps/pomodoro/00_企画書.md)
-- [Pomodoro 基本設計書](Doc/apps/pomodoro/10_基本設計書.md)
-
-## ソース構成
-
-```text
-pgm/tinyworks/
-└─ app/
-   └─ src/main/kotlin/io/github/mockuptools/tinyworks/
-      ├─ core/      # 機能間で共有する基盤
-      └─ feature/
-         ├─ home/
-         └─ pomodoro/
-```
-
-初期段階ではGradleの`app`モジュール一つで構成し、パッケージ単位で機能を分離します。必要になった場合だけ、パッケージをGradleモジュールへ切り出します。
-
-## 方針
-
-- 複数の機能を一つのAndroidアプリとして提供する
-- 機能固有のコードを機能ディレクトリへ閉じ込める
-- 共通処理は`core`へ集約するが、先行して過剰な共通化を行わない
-- 端末内で完結できる機能はローカル処理を基本とする
-- Firebaseは配布を基本とし、データ同期などが必要な機能だけ追加で利用する
+[ドキュメント一覧](docs/README.md)から、企画、設計、開発環境、配布・運用、プライバシー方針を参照できます。
 
 ## ライセンス
 
