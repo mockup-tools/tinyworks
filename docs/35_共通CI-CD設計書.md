@@ -33,20 +33,22 @@ Distribution Workflow
 
 アプリは一つなので、初期段階では機能ごとのWorkflowを作成しない。
 
-Androidプロジェクトがまだ存在しない段階では、CIは構成確認だけを行い、ビルドジョブをスキップする。`pgm/tinyworks`にGradleプロジェクトを追加した後は、通常のビルド検証を実行する。
+Androidプロジェクトは`android/`に置く。CIはテスト・Lint・ビルドを直接実行し、プロジェクトが欠けている場合は失敗として扱う。
 
 ## 3. CI
 
 - `main`向けPull Requestで実行する
 - 各ブランチへのpushで実行する
 - 必要に応じて手動実行できるようにする
-- `pgm/tinyworks`をGradleの作業ディレクトリとする
+- 自動実行の対象は`android/**`、`.devcontainer/**`、`.gitattributes`、`.editorconfig`、`.github/workflows/**`の変更とする
+- `android`をGradleの作業ディレクトリとする
 - `testDebugUnitTest`、`lintDebug`、`assembleDebug`を行う
 - JDK 17、Android SDK API 37、Build Tools 37.0.0を使用する
 
 ## 4. Firebase App Distribution
 
-- `main`への変更がCIに成功した後に配布する
+- `main`へのpushによるCIが成功した後に、検証済みコミットを取得して配布する
+- 手動配布は`main`のみを対象とし、同じコミットの単体テストとLintが成功してから配布する
 - 配布対象は一つのAndroidアプリとする
 - 配布用Debug APKの`applicationId`は暫定で`io.github.mockuptools.tinyworks.debug`とする
 - テスト用APKは固定署名鍵で署名する
@@ -81,8 +83,9 @@ Secret名は`TINYWORKS_`を接頭辞として管理する。
 
 機能ごとに個別ビルドや配布が必要になった場合だけ、WorkflowやGradle構成を見直す。
 
-## 7. 未決事項
+## 7. 署名・認証・バージョン
 
-- 署名方式
-- Firebase認証方式（Service Account / OIDC）
-- バージョン番号の規則
+- 配布APKはSecretsに保存した固定keystoreで署名し、`apksigner verify`で確認する
+- Firebase認証はService Account JSONを一時ファイルとして作成して使用する
+- `versionCode`は配布Workflowの`GITHUB_RUN_NUMBER`、`versionName`は`0.1.0-dev.<GITHUB_RUN_NUMBER>`とする
+- 署名鍵、認証情報、署名済みAPKの一時ファイルは、配布の成否にかかわらず削除する
