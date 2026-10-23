@@ -17,6 +17,7 @@ import io.github.mockuptools.tinyworks.feature.home.HomeScreen
 import io.github.mockuptools.tinyworks.feature.pomodoro.PomodoroScreen
 import io.github.mockuptools.tinyworks.feature.pomodoro.PomodoroSession
 import io.github.mockuptools.tinyworks.feature.poyday.PoyDayScreen
+import io.github.mockuptools.tinyworks.feature.scooter.ScooterScreen
 
 class MainActivity : ComponentActivity() {
     private var openPomodoroRequestId by mutableIntStateOf(0)
@@ -61,6 +62,7 @@ private enum class Destination {
     HOME,
     POMODORO,
     POYDAY,
+    SCOOTER,
 }
 
 @Composable
@@ -107,6 +109,11 @@ private fun TinyworksApp(
                 selected = destination == Destination.POYDAY,
                 onClick = { destination = Destination.POYDAY },
             ),
+            TinyworksMenuItem(
+                label = "スクーター管理",
+                selected = destination == Destination.SCOOTER,
+                onClick = { destination = Destination.SCOOTER },
+            ),
         ),
     ) { contentModifier ->
         when (destination) {
@@ -114,6 +121,7 @@ private fun TinyworksApp(
                 modifier = contentModifier,
                 onOpenPomodoro = { destination = Destination.POMODORO },
                 onOpenPoyDay = { destination = Destination.POYDAY },
+                onOpenScooter = { destination = Destination.SCOOTER },
             )
 
             Destination.POMODORO -> PomodoroScreen(
@@ -122,6 +130,10 @@ private fun TinyworksApp(
             )
 
             Destination.POYDAY -> PoyDayScreen(
+                modifier = contentModifier,
+                onNavigateHome = { destination = Destination.HOME },
+            )
+            Destination.SCOOTER -> ScooterScreen(
                 modifier = contentModifier,
                 onNavigateHome = { destination = Destination.HOME },
             )

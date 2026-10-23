@@ -9,6 +9,7 @@
 | ホーム | 機能一覧と各機能への入口 | [ホーム](docs/apps/home/00_企画書.md) |
 | Pomodoro | 作業・休憩タイマー、設定、統計・履歴 | [Pomodoro](docs/apps/pomodoro/00_企画書.md) |
 | ポイの日（PoyDay） | ゴミ出しルールの設定、カレンダー、ホーム画面ウィジェット | [ポイの日](docs/apps/poyday/00_企画書.md) |
+| スクーター管理 | 複数車両・業務ODO・家事按分・給油・整備の端末内記録 | [スクーター管理](docs/apps/scooter/00_企画書.md) |
 
 ## リポジトリ構成
 
@@ -20,7 +21,7 @@ tinyworks/
 │     │  ├─ kotlin/io/github/mockuptools/tinyworks/
 │     │  │  ├─ MainActivity.kt
 │     │  │  ├─ core/         # 共通UI・保存基盤
-│     │  │  └─ feature/      # home・pomodoro・poyday
+│     │  │  └─ feature/      # home・pomodoro・poyday・scooter
 │     │  └─ res/
 │     └─ test/               # 単体テスト
 ├─ docs/                    # 全体・共通設計と機能別設計
