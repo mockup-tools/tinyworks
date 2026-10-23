@@ -16,6 +16,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenPomodoro: () -> Unit,
     onOpenPoyDay: () -> Unit,
+    onOpenScooter: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -35,6 +36,9 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("ポイの日")
+        }
+        Button(onClick = onOpenScooter, modifier = Modifier.fillMaxWidth()) {
+            Text("スクーター管理")
         }
     }
 }
